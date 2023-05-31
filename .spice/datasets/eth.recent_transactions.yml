@@ -1,0 +1,5 @@
+name: eth.recent_blocks
+type: append
+firecache:
+  enabled: true
+  trigger: block_number
