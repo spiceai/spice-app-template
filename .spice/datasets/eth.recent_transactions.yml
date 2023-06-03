@@ -1,4 +1,4 @@
-name: eth.recent_blocks
+name: eth.recent_transactions
 type: append
 firecache:
   enabled: true
