@@ -2,5 +2,5 @@ name: eth.recent_blocks
 type: append
 firecache:
   enabled: true
-  trigger: block_number
-  time_column: block_timestamp
+  trigger: number
+  time_column: timestamp
