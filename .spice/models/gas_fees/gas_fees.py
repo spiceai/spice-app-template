@@ -255,10 +255,6 @@ def train(context, runtime):
     model_weights_name = 'model.ubj'
     path = os.path.join(os.environ['OUTPUT_DIR'], model_weights_name)
     model.save_model(path)
-    #with open(path, 'rb') as f:
-    #    #model_weights_cid = self.ipfs.upload_file(f, model_weights_name)
-    #    runtime.upload(f, model_weights_name)
-    #print('UPLOADED WEIGHTS:', model_weights_cid)
 
     test_results = generate_test_results(model, ds, forecast_size, has_covariate)
     report = json.dumps({
@@ -271,7 +267,7 @@ def train(context, runtime):
     })
     runtime.upload(report, 'report.json')
 
-
+    # TODO(tim) re-enable for a better training report
     #test_chart = chart_test_results(test_results)
     #best_worst_chart = chart_best_worst(test_results)
     #report_items = generate_train_report(test_chart, best_worst_chart).items
@@ -282,19 +278,14 @@ def train(context, runtime):
     #report_cid = self.ipfs.upload_string(report_json)
     #print('uploaded report:', report_cid)
 
-    #print("done\n")
-    #return TrainResponse(
-    #    model_weights_name=model_weights_name,
-    #    model_weights_cid=model_weights_cid,
-    #    report_cid=report_cid,
-    #)
-
-def infer(context, runtime) -> InferenceResponse:
+def infer(context, runtime):
     print('RUNNING USER XGBOOST INFERENCE ACTIVITY')
     print('context', context)
 
     lookback_size = context.get('lookback_size', context.get('lookbacksize'))
     model = xgboost.XGBRegressor(objective='reg:squarederror', n_estimators=1000)
+    model_path = os.path.join(os.environ['MODEL_DIR'], context.get('model_weights_name', context.get('modelweightsname')))
+    print('load model from', model_path)
     model.load_model(model_path)
     lookback = pd.DataFrame(context['lookback'])
     metadata = context['metadata']
@@ -306,8 +297,8 @@ def infer(context, runtime) -> InferenceResponse:
     print('input shape', input_window.shape)
     predicted = model.predict(input_window.reshape(1, -1))
 
-    now = context['lookback'][-1].timestamp
-    return make_inference_response(predicted, now)
+    now = context['lookback'][-1]['timestamp']
+    runtime.upload(serialize_report(make_inference_response(predicted, now)), 'results.json')
 
 
 # TODO(tim) f1, MSE, MAE, auto-correlation across all train+validation+test sets (ideally measured per-train epoch)
