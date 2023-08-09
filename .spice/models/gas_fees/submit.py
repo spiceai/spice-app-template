@@ -38,28 +38,29 @@ def handle(conn):
 
 def train():
   conn = make_conn()
-  tq = '''WITH counts AS (
-    SELECT block_number, count(1) as "count" FROM eth.transactions GROUP BY block_number
-  )
-  SELECT number as "ts", CAST(b.base_fee_per_gas / 1000000000.0 AS DOUBLE) as "y", CAST(c."count" AS DOUBLE) as "y2"
-  FROM eth.blocks b
-  INNER JOIN counts c ON b.number = c.block_number
-  WHERE b.base_fee_per_gas IS NOT NULL'''
+  tq = '''SELECT number as "ts", CAST(base_fee_per_gas / 1000000000.0 AS DOUBLE) as "y", CAST(transaction_count AS DOUBLE) as "y2" from eth.recent_blocks
+WHERE base_fee_per_gas IS NOT NULL'''
   iq = '''SELECT number as "ts", CAST(base_fee_per_gas / 1000000000.0 AS DOUBLE) as "y", CAST(transaction_count AS DOUBLE) as "y2" from eth.recent_blocks
 WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 35'''
 
-  tq += ' ORDER BY block_number DESC LIMIT 500' # last 500 blocks
+  tq += ' ORDER BY number DESC LIMIT 500' # last 500 blocks
 
-  with tempfile.TemporaryDirectory() as tmp:
+  #with tempfile.TemporaryDirectory() as tmp:
+  if True:
+    tmp = '.'
     zpath = f'{tmp}/function.zip'
-    with ZipFile(zpath, 'w') as z:
-      for filename in ['gas_fees.py', 'requirements.txt']:
-        with open(filename, encoding='utf8') as f:
-          s = f.read()
-          z.writestr(filename, s)
+    if not os.path.exists(zpath):
+      print('creating zip ...')
+      with ZipFile(zpath, 'w') as z:
+        for filename in ['gas_fees.py', 'requirements.txt']:
+          with open(filename, encoding='utf8') as f:
+            s = f.read()
+            z.writestr(filename, s)
 
+    print('upload', zpath)
+    subprocess.run(['ipfs', 'add', zpath])
     out = subprocess.run(['ipfs', '--api', '/ip4/20.115.54.73/tcp/5001', 'add', '-nq', zpath], capture_output=True, text=True)
-    code_package_cid = out.stdout
+    code_package_cid = out.stdout.strip()
     print(code_package_cid)
 
   rs = post(conn, f'/v0.1/train?api_key={API_KEY}', {
@@ -70,7 +71,9 @@ WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 35'''
     "train_query": tq,
     "inference_query": iq,
     'metadata': {
-      "firecache": True,
+      "lookback_size": 30,
+      "forecast_size": 1,
+      #"firecache": True,
       "covariate": True,
     },
     'runtime': 'python3.10',

@@ -239,10 +239,12 @@ def train(context, runtime):
     metadata = context['metadata']
     has_covariate = has_covariates(metadata)
 
-    ds = make_xgboost_data(all_data, context['lookback_size'], context['forecast_size'], has_covariate)
+    lookback_size = context.get('lookback_size', context.get('lookbacksize'))
+    forecast_size = context.get('forecast_size', context.get('forecastsize'))
+    ds = make_xgboost_data(all_data, lookback_size, forecast_size, has_covariate)
     wfa_ds = ds[-1000:] # TODO(tim) parameterise better
     print(ds.shape, wfa_ds.shape)
-    model, error, y, yhat = walk_forward_analysis(wfa_ds, context['forecast_size'], 10)
+    model, error, y, yhat = walk_forward_analysis(wfa_ds, forecast_size, 10)
     print(f'MAE: {error}')
     print(y)
     print(yhat)
@@ -258,12 +260,12 @@ def train(context, runtime):
     #    runtime.upload(f, model_weights_name)
     #print('UPLOADED WEIGHTS:', model_weights_cid)
 
-    test_results = generate_test_results(model, ds, context['forecast_size'], has_covariate)
+    test_results = generate_test_results(model, ds, forecast_size, has_covariate)
     report = json.dumps({
       'items': [
         {
           'type': 'html',
-          'html': f'<h1>Train Report</h1><div>{len(test_results)} results:</div><ol>' + '\n'.join(list(map(lambda r : f'<li>{json.dumps(r)}</li>', test_results))) + '</ol>',
+          'html': f'<h1>Train Report</h1><div>{len(test_results)} results:</div><ol>' + '\n'.join(list(map(lambda r : f'<li>{json.dumps(_sanitize(r))}</li>', test_results))) + '</ol>',
         }
       ],
     })
@@ -291,7 +293,7 @@ def infer(context, runtime) -> InferenceResponse:
     print('RUNNING USER XGBOOST INFERENCE ACTIVITY')
     print('context', context)
 
-    lookback_size = context['lookback_size']
+    lookback_size = context.get('lookback_size', context.get('lookbacksize'))
     model = xgboost.XGBRegressor(objective='reg:squarederror', n_estimators=1000)
     model.load_model(model_path)
     lookback = pd.DataFrame(context['lookback'])
