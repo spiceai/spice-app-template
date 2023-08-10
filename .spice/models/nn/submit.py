@@ -3,8 +3,8 @@
 import os
 import re
 import json
-import subprocess
 import tempfile
+import subprocess
 from zipfile import ZipFile
 from http import client
 import yaml
@@ -41,47 +41,41 @@ def handle(conn):
 
 def train():
   conn = make_conn()
-  tq = '''SELECT number as "ts", CAST(base_fee_per_gas / 1000000000.0 AS DOUBLE) as "y", CAST(transaction_count AS DOUBLE) as "y2" from eth.recent_blocks
+  tq = '''SELECT number as "ts", CAST(base_fee_per_gas / 1000000000.0 AS DOUBLE) as "y" from eth.recent_blocks
 WHERE base_fee_per_gas IS NOT NULL'''
-  iq = '''SELECT number as "ts", CAST(base_fee_per_gas / 1000000000.0 AS DOUBLE) as "y", CAST(transaction_count AS DOUBLE) as "y2" from eth.recent_blocks
-WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 35'''
+  iq = '''SELECT number as "ts", CAST(base_fee_per_gas / 1000000000.0 AS DOUBLE) as "y" from eth.recent_blocks
+WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 15'''
 
   tq += ' ORDER BY number DESC LIMIT 500' # last 500 blocks
 
-  #with tempfile.TemporaryDirectory() as tmp:
-  if True:
-    tmp = '.'
+  with tempfile.TemporaryDirectory() as tmp:
     zpath = f'{tmp}/function.zip'
     if not os.path.exists(zpath):
       print('creating zip ...')
       with ZipFile(zpath, 'w') as z:
-        for filename in ['gas_fees.py', 'requirements.txt']:
+        for filename in ['nn.py', 'requirements.txt']:
           with open(filename, encoding='utf8') as f:
             s = f.read()
             z.writestr(filename, s)
 
-    print('upload', zpath)
     out = subprocess.run(['ipfs', '--api', '/dns/localhost/tcp/5001', 'add', '-q', zpath], capture_output=True, text=True)
     code_package_cid = out.stdout.strip()
     print(code_package_cid)
 
   config = {
-    "model_type": 'user_gas_fees',
-    "lookback_size": 30,
+    "model_type": 'user_nn',
+    "lookback_size": 10,
     "forecast_size": 1,
     "epochs": 1,
     "train_query": tq,
     "inference_query": iq,
     'metadata': {
-      "lookback_size": 30,
-      "forecast_size": 1,
-      #"firecache": True,
-      "covariate": True,
+      "firecache": True,
     },
     'runtime': 'python3.10',
     'code_package_cid': code_package_cid,
-    'train_handler': 'gas_fees.train',
-    'inference_handler': 'gas_fees.infer',
+    'train_handler': 'nn.train',
+    'inference_handler': 'nn.infer',
   }
   with open('context.yaml', 'w', encoding='utf8') as f:
     yaml.dump(config, f)
