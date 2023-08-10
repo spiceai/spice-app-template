@@ -4,9 +4,6 @@
 Demo Neural Network app
 """
 
-import sys
-sys.path[0] = str(sys.path[0]) # BAH!
-
 import os
 import math
 import json
@@ -20,6 +17,7 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import Input, Model
 from keras.layers import Concatenate, Dense, Dropout, Lambda, LSTM, Reshape
+from util import make_inference_response
 
 # maybe fix gpu freeze, see: https://stackoverflow.com/a/59297959
 configproto = tf.compat.v1.ConfigProto()
@@ -131,23 +129,6 @@ def make_tf_model(input_shape: Tuple[int, int, int]):
     )
 
     return model
-
-def make_inference_response(predicted: np.ndarray, now: float):
-    forecast = []
-    for npvalue in predicted:
-        # block based model, so time is dense, no "12 sec" timestamp extrapolation required
-        now += 1
-        value = float(npvalue)
-        if math.isnan(value):
-            value = -1e10
-        forecast.append({
-          'timestamp': now,
-          'value': value,
-        })
-
-    return {
-        'forecast': forecast,
-    }
 
 def train(context, runtime):
     print("RUNNING USER NN TRAINING", context)

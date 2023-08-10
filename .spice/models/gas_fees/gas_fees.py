@@ -1,159 +1,20 @@
 #!/usr/bin/python
 
 """
-Demo XGBoost app
+Demo XGBoost Gas Fees app
 """
 
 import os
+import json
 from typing import List
 import numpy as np
 import pandas as pd
 import xgboost
 import tqdm
 from sklearn.metrics import mean_absolute_error
-#from spec import TrainParams, TrainResponse, InferenceParams, InferenceResponse, HtmlReportItem, PlotlyLayout, PlotlyReportItem, Report
-#from util import mse, serialize_report, make_inference_response
+from spec import TrainParams, TrainResponse, InferenceParams, InferenceResponse, HtmlReportItem, PlotlyLayout, PlotlyReportItem, Report
+from util import mse, serialize_report, make_inference_response, sanitize
 #from plotly_utils import scatter, chart_test_results, chart_best_worst, generate_train_report
-
-
-# TODO move to spec.py
-from typing import List, Optional
-from dataclasses import dataclass, field
-
-@dataclass
-class TrainParams:
-    model_id: str
-    input_parquet_cid: str
-    lookback_size: int
-    forecast_size: int
-    epochs: int
-    metadata: Optional[dict]
-
-@dataclass
-class TrainResponse:
-    model_weights_name: str
-    model_weights_cid: str
-    report_cid: str
-
-@dataclass
-class InferencePoint:
-    timestamp: float
-    value: float
-    covariate: Optional[float]
-
-@dataclass
-class InferenceParams:
-    model_id: str
-    lookback: list[InferencePoint]
-    model_weights_cid: str
-    model_weights_name: str
-    lookback_size: int
-    forecast_size: int
-    metadata: Optional[dict] = None
-
-@dataclass
-class InferenceResponse:
-    forecast: list[InferencePoint]
-
-@dataclass
-class PlotlyGrid:
-    subplots: any = None
-    rows: int = None
-    cols: int = None
-
-@dataclass
-class PlotlyLayout:
-    title: str
-    width: int = None
-    height: int = None
-    grid: PlotlyGrid = None
-    yaxis1: any = None
-    yaxis2: any = None
-    annotations: list = None
-
-@dataclass
-class HtmlReportItem:
-    type: str = field(default='html', init=False)
-    html: str
-
-@dataclass
-class PlotlyReportItem:
-    type: str = field(default='plotly', init=False)
-    traces: List[any]
-    layout: PlotlyLayout
-
-
-ReportItem = HtmlReportItem | PlotlyReportItem
-
-@dataclass
-class Report:
-    items: list[ReportItem]
-
-# end spec.py
-
-
-# TODO get from util.py
-
-import math
-import json
-import dataclasses
-from typing import Any
-import numpy as np
-#from spec import Report, ReportItem, InferencePoint, InferenceResponse
-
-class NamedFile:
-    def __init__(self, name, f):
-        self.name = name
-        self.f = f
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self.f, name)
-
-def mse(x):
-    return x["mse"]
-
-def mae(x):
-    return x["mae"]
-
-def _sanitize(o):
-    if isinstance(o, np.ndarray):
-        return _sanitize(o.tolist())
-    if dataclasses.is_dataclass(o):
-        return _sanitize(dataclasses.asdict(o))
-    if isinstance(o, dict):
-        return {k: _sanitize(v) for k, v in o.items() if v is not None}
-    if isinstance(o, list):
-        return list(map(_sanitize, o))
-    if isinstance(o, float) and (math.isnan(o) or math.isinf(o)):
-        return None
-    return o
-
-def serialize_report(report: Report | ReportItem) -> str:
-    # could do this with a json encoder, but we want some specific behaviour (eg. no null values in maps)
-    # that's easier/clearer to just process ourselves
-    return json.dumps(_sanitize(report))
-
-def make_inference_response(predicted: np.ndarray, now: float) -> InferenceResponse:
-    forecast = []
-    print('forecast',)
-    for npvalue in predicted:
-        # TODO(tim) better *configurable* timestamp extrapolation
-        # NB. current models are block based, so time is dense, no extrapolation required
-        now += 1
-        value = float(npvalue)
-        print(f' {value} ({npvalue})',)
-        if math.isnan(value):
-            value = -1e10
-        forecast.append(InferencePoint(now, value, None))
-
-    print("done\n")
-    return InferenceResponse(
-        forecast=forecast,
-    )
-# end util.py
-
-
-
 
 def make_xgboost_data(filled_df: pd.DataFrame, lookback_size: int, lookahead_size: int, has_covariate: bool) -> np.array:
     lo = filled_df['ts'].min()
@@ -264,7 +125,7 @@ def train(context, runtime):
       'items': [
         {
           'type': 'html',
-          'html': f'<h1>Train Report</h1><div>{len(test_results)} results:</div><ol>' + '\n'.join(list(map(lambda r : f'<li>{json.dumps(_sanitize(r))}</li>', test_results))) + '</ol>',
+          'html': f'<h1>Train Report</h1><div>{len(test_results)} results:</div><ol>' + '\n'.join(list(map(lambda r : f'<li>{json.dumps(sanitize(r))}</li>', test_results))) + '</ol>',
         }
       ],
     })

@@ -19,15 +19,15 @@ def mse(x):
 def mae(x):
     return x["mae"]
 
-def _sanitize(o):
+def sanitize(o):
     if isinstance(o, np.ndarray):
-        return _sanitize(o.tolist())
+        return sanitize(o.tolist())
     if dataclasses.is_dataclass(o):
-        return _sanitize(dataclasses.asdict(o))
+        return sanitize(dataclasses.asdict(o))
     if isinstance(o, dict):
-        return {k: _sanitize(v) for k, v in o.items() if v is not None}
+        return {k: sanitize(v) for k, v in o.items() if v is not None}
     if isinstance(o, list):
-        return list(map(_sanitize, o))
+        return list(map(sanitize, o))
     if isinstance(o, float) and (math.isnan(o) or math.isinf(o)):
         return None
     return o
@@ -35,7 +35,7 @@ def _sanitize(o):
 def serialize_report(report: Report | ReportItem) -> str:
     # could do this with a json encoder, but we want some specific behaviour (eg. no null values in maps)
     # that's easier/clearer to just process ourselves
-    return json.dumps(_sanitize(report))
+    return json.dumps(sanitize(report))
 
 def make_inference_response(predicted: np.ndarray, now: float) -> InferenceResponse:
     forecast = []

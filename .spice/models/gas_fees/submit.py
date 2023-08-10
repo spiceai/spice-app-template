@@ -48,14 +48,12 @@ WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 35'''
 
   tq += ' ORDER BY number DESC LIMIT 500' # last 500 blocks
 
-  #with tempfile.TemporaryDirectory() as tmp:
-  if True:
-    tmp = '.'
+  with tempfile.TemporaryDirectory() as tmp:
     zpath = f'{tmp}/function.zip'
     if not os.path.exists(zpath):
       print('creating zip ...')
       with ZipFile(zpath, 'w') as z:
-        for filename in ['gas_fees.py', 'requirements.txt']:
+        for filename in ['gas_fees.py', 'spec.py', 'util.py', 'requirements.txt']:
           with open(filename, encoding='utf8') as f:
             s = f.read()
             z.writestr(filename, s)
@@ -75,7 +73,7 @@ WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 35'''
     'metadata': {
       "lookback_size": 30,
       "forecast_size": 1,
-      #"firecache": True,
+      "firecache": True,
       "covariate": True,
     },
     'runtime': 'python3.10',

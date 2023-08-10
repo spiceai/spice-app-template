@@ -4,9 +4,6 @@
 Demo Linear Regression app
 """
 
-import sys
-sys.path[0] = str(sys.path[0]) # BAH!
-
 import os
 import math
 import json

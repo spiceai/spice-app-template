@@ -53,7 +53,7 @@ WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 15'''
     if not os.path.exists(zpath):
       print('creating zip ...')
       with ZipFile(zpath, 'w') as z:
-        for filename in ['nn.py', 'requirements.txt']:
+        for filename in ['nn.py', 'util.py', 'requirements.txt']:
           with open(filename, encoding='utf8') as f:
             s = f.read()
             z.writestr(filename, s)
