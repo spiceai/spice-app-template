@@ -11,6 +11,8 @@ import yaml
 
 HOST = 'https://dev-data.spiceai.io'
 API_KEY = '333434|509ac91b5e634695a7f98fe247fe6968' # dev cerexhe spice-app-template
+
+#HOST = 'https://data.spiceai.io'
 #API_KEY = os.environ['SPICE_API_KEY']
 
 def make_conn():
@@ -47,7 +49,6 @@ WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 35'''
   tq += ' ORDER BY number DESC LIMIT 500' # last 500 blocks
 
   #with tempfile.TemporaryDirectory() as tmp:
-  abort_after_upload = False
   if True:
     tmp = '.'
     zpath = f'{tmp}/function.zip'
@@ -58,19 +59,14 @@ WHERE base_fee_per_gas IS NOT NULL ORDER BY ts DESC LIMIT 35'''
           with open(filename, encoding='utf8') as f:
             s = f.read()
             z.writestr(filename, s)
-      abort_after_upload = True
 
     print('upload', zpath)
-    subprocess.run(['ipfs', 'add', zpath])
-    out = subprocess.run(['ipfs', '--api', '/ip4/20.115.54.73/tcp/5001', 'add', '-nq', zpath], capture_output=True, text=True)
+    out = subprocess.run(['ipfs', '--api', '/dns/localhost/tcp/5001', 'add', '-q', zpath], capture_output=True, text=True)
     code_package_cid = out.stdout.strip()
     print(code_package_cid)
-    if abort_after_upload:
-      print('aborting to give you a chance to manually bash the ipfs caches')
-      return
 
   config = {
-    "model_type": 'xgb_gas_fees',
+    "model_type": 'user_gas_fees',
     "lookback_size": 30,
     "forecast_size": 1,
     "epochs": 1,

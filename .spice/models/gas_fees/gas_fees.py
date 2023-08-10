@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+"""
+Demo XGBoost app
+"""
+
 import os
 from typing import List
 import numpy as np
@@ -7,7 +11,6 @@ import pandas as pd
 import xgboost
 import tqdm
 from sklearn.metrics import mean_absolute_error
-#from ipfs import Ipfs
 #from spec import TrainParams, TrainResponse, InferenceParams, InferenceResponse, HtmlReportItem, PlotlyLayout, PlotlyReportItem, Report
 #from util import mse, serialize_report, make_inference_response
 #from plotly_utils import scatter, chart_test_results, chart_best_worst, generate_train_report
