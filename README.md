@@ -1,1 +1,1 @@
-# Spice.xyz app repo template
+# Spice.ai app repo template
