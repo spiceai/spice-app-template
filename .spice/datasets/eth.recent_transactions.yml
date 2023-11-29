@@ -1,6 +1,8 @@
 name: eth.recent_transactions
 type: append
 firecache:
-  enabled: true
+  # Available on enterprise and partner plans
+  # Learn more about Spice Firecache at https://docs.spice.ai/building-blocks/spice-firecache
+  enabled: false
   trigger: block_number
   time_column: timestamp
